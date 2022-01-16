@@ -1,0 +1,264 @@
+diff --git a/tree-visualizer/package.json b/tree-visualizer/package.json
+index aded50a..f0a656b 100644
+--- a/tree-visualizer/package.json
++++ b/tree-visualizer/package.json
+@@ -6,7 +6,7 @@
+ 		"@testing-library/jest-dom": "^5.16.1",
+ 		"@testing-library/react": "^12.1.2",
+ 		"@testing-library/user-event": "^13.5.0",
+-		"binary-tree-visualizer": "^2.1.4",
++		"binary-tree-visualizer": "^2.1.5",
+ 		"nodemon": "^2.0.15",
+ 		"react": "^17.0.2",
+ 		"react-dom": "^17.0.2",
+diff --git a/tree-visualizer/src/App.css b/tree-visualizer/src/App.css
+index fffe28c..5fdf54f 100644
+--- a/tree-visualizer/src/App.css
++++ b/tree-visualizer/src/App.css
+@@ -3,24 +3,26 @@
+ 	padding: 0;
+ }
+ 
+-canvas {
+-	width: 70%;
+-	height: 50%;
+-
+-	margin-top: 2%;
+-	margin-left: 7%;
+-
+-	background-color: black;
++body {
++	background-color: rgb(17,20,28);
+ }
+ 
+-#box {
+-	float: right;
+-	margin-right: 3%;
+-	/* width: 350px;
+-	height: 150px; */
++header {
++	display: flex;
++	justify-content: center;
++	padding: 0.4rem;
+ }
+-#btn {
+-	float: right;
+-	margin-right: 2%;
+-	margin-top: 1%;
++
++input {
++	padding: 0.4rem;
++	margin: 0 1rem;
+ }
++
++button {
++	padding: 0.4rem;
++	background: transparent;
++	border: 1px solid rgb(254,249,195);
++	color: rgb(254,249,195);
++	border-radius: 5px;
++	cursor: pointer;
++}
+\ No newline at end of file
+diff --git a/tree-visualizer/src/App.js b/tree-visualizer/src/App.js
+index ff28508..c81dc7e 100644
+--- a/tree-visualizer/src/App.js
++++ b/tree-visualizer/src/App.js
+@@ -1,108 +1,95 @@
+-import './App.css';
++import "./App.css";
+ import {
+-	BinaryTreeNode,
+-	drawBinaryTree,
+-	setTheme,
+-	VisualizationType,
+-} from 'binary-tree-visualizer/lib';
+-import { useState } from 'react';
++  BinaryTreeNode,
++  drawBinaryTree,
++  VisualizationType,
++} from "binary-tree-visualizer/lib";
++import { useCallback, useEffect, useRef, useState } from "react";
++import { stringToArray } from "./utils/stringToArray";
++import { insert } from "./utils/binarySearchTree";
+ 
+ function App() {
+-	const [arr, setArr] = useState('');
+-	const input = document.querySelector('input');
+-
+-	const getInput = (e) => {
+-		setArr(e.target.value);
+-	};
+-	let root = -1;
+-
+-	const drawTree = () => {
+-		function insert(node, value) {
+-			if (node === -1) {
+-				root = new BinaryTreeNode(value);
+-				return;
+-			}
+-
+-			if (node.value === value) {
+-				return;
+-			}
+-
+-			if (value < node.value) {
+-				if (node.left) {
+-					insert(node.left, value);
+-					return;
+-				}
+-				node.setLeft(new BinaryTreeNode(value));
+-				return;
+-			}
+-
+-			if (node.right) {
+-				insert(node.right, value);
+-				return;
+-			}
+-
+-			node.setRight(new BinaryTreeNode(value));
+-		}
+-
+-		let nums = arr.slice(1, arr.length - 1); //REMOVE BRACKETS [ , ]
+-
+-		//SPLIT
+-
+-		//returns a new array
+-		//method doesn't change the original string
+-		let arr1 = nums.split(',');
+-
+-		let result = arr1.map((num) => {
+-			return parseInt(num);
+-		});
+-
+-		console.log(result);
+-
+-		let dontdraw = false;
+-		result.forEach((num) => {
+-			if (isNaN(num)) {
+-				dontdraw = true;
+-				return;
+-			}
+-		});
+-
+-		// const nodes = [50, 100, 20, 40, 70, 60, 80];
+-
+-		if (dontdraw) {
+-			alert('WRONG INPUT');
+-			setArr('');
+-			return;
+-		}
+-		result.forEach((num) => {
+-			insert(root, num);
+-		});
+-		drawBinaryTree(root, document.querySelector('canvas'), {
+-			type: VisualizationType.PRETTY,
+-		});
+-
+-		setArr('');
+-		root = -1;
+-		input.value = '';
+-	};
+-
+-	return (
+-		<div>
+-			<main>
+-				<canvas></canvas>
+-				<br />
+-				<input type="text" onChange={getInput} id="box" />
+-				<br />
+-				<button onClick={drawTree} id="btn">
+-					DRAW
+-				</button>
+-			</main>
+-		</div>
+-	);
++  // For storing the raw string
++  const [rawArr, setRawArr] = useState("");
++
++  // For storing the root node
++  const [root, setRoot] = useState(null);
++
++  // For storing the canvas ref
++  const canvasRef = useRef(null);
++
++  /**
++   * Draw Tree
++   */
++  const drawTree = useCallback(() => {
++    drawBinaryTree(root, canvasRef.current, {
++      type: VisualizationType.HIGHLIGHT,
++      maxHeight: 0,
++    });
++  }, [root]);
++
++  /**
++   * Handle Input
++   */
++  const handleInput = useCallback(
++    (e) => {
++      setRawArr(e.target.value);
++    },
++    [setRawArr]
++  );
++
++  /**
++   * Handle click
++   */
++  const handleClick = useCallback(() => {
++    const [isValid, arr] = stringToArray(rawArr);
++
++    if (!isValid) {
++      alert("WRONG INPUT");
++      setRawArr("");
++      return;
++    }
++
++    const [firstNumber, ...restArr] = arr;
++    const root = new BinaryTreeNode(firstNumber);
++    restArr.forEach((num) => {
++      insert(root, num);
++    });
++
++    setRoot(root);
++    setRawArr("");
++  }, [rawArr]);
++
++  /**
++   * Adding handler and draw tree
++   */
++  useEffect(() => {
++    if (root) {
++      drawTree();
++    }
++
++    const resizeHandler = () => {
++      drawTree();
++    };
++    window.addEventListener("resize", resizeHandler);
++
++    return () => {
++      window.removeEventListener("resize", resizeHandler);
++    };
++  }, [drawTree, root]);
++
++  return (
++    <div>
++      <header>
++        <input type="text" value={rawArr} onChange={handleInput} id="box" />
++        <br />
++        <button onClick={handleClick}>Draw</button>
++      </header>
++      <main>
++        <canvas ref={canvasRef}></canvas>
++      </main>
++    </div>
++  );
+ }
+-setTheme({
+-	fontSize: 15,
+-	radius: 40,
+-	leafNodeSpace: 90,
+-});
+ 
+ export default App;
